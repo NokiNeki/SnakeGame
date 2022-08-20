@@ -20,7 +20,7 @@ var settings = {
     'speed':0,
     'fruit_count':0,
 }
-settings = JSON.parse(fs.readFileSync('settings.json'))
+settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}))
 
 const screenWidth = settings.screenWidth
 const screenHeight = settings.screenHeight
