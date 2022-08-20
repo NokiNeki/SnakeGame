@@ -2,26 +2,49 @@ const r = require('raylib')
 const fs = require('fs')
 
 
+/*
+ * TODO:
+ * - Add Color Selection to Snake
+ * - Add Timer
+ * - Add Smoother Movements
+ */
+
 // Variables --------------------------------
 
-var score = {'highscore':0}
-score.highscore = JSON.parse(fs.readFileSync('scores.json'))
+var settings = {
+    'screenWidth':0,
+    'screenHeight':0,
 
-const screenWidth = 820
-const screenHeight = 640
+    'highscore':0, 
+    'speed_increase':0,
+    'speed':0,
+    'fruit_count':0,
+}
+settings = JSON.parse(fs.readFileSync('scores.json'))
+
+const screenWidth = settings.screenWidth
+const screenHeight = settings.screenHeight
 const top_border = 100
 const squareSize = 20
 
 const line_color = r.Color(180, 180, 180, 255)
 const background_color = r.Color(60, 60, 60, 255)
 const top_border_color = r.Color(40, 40, 40, 255)
+const button_color = r.Color(200, 120, 90, 255)
+
+var snake_color_red = 123
+var snake_color_green = 23
+var snake_color_blue = 64
 
 var game_over = false
+var game_playing = true
+var game_start = false
 var speed_check = 0 // Move on 10
 var speed = 1
+var speed_increase = 0.005
 
 
-var fruit_count = 200;
+var fruit_count = 5;
 
 const fruit = {
     pos : new r.Vector2(),
@@ -50,9 +73,13 @@ const snake_body_pos = []
 // Initializes the game --------------------------------
 
 r.InitWindow(screenWidth, screenHeight, "raylib.js Game            MADE BY: Znoki & Pinny~Poo & Koki")
+r.SetExitKey(0)
 r.SetTargetFPS(60)
 init_vars()
 
+game_over = false
+game_playing = false
+game_start = true
 
 // Game Loop --------------------------------
 
@@ -68,7 +95,6 @@ r.CloseWindow()
 // Functions --------------------------------
 
 function init_vars() {
-    game_over = false
 
     for (var i = 0; i < fruit_count; i++) {
         fruit_array[i] = JSON.parse(JSON.stringify(fruit))
@@ -88,12 +114,13 @@ function init_vars() {
     snake.size = new r.Vector2(squareSize, squareSize)
     snake.length = 0
     snake.head_color = r.Color(115, 84, 222, 255)
-    snake.body_color = r.Color(83, 48, 209, 255)
+    snake.body_color = r.Color(85, 54, 192, 255)
+    // snake.body_color = r.Color(83, 48, 209, 255)
 }
 
 function update_highscore(new_score) {
-    score.highscore = new_score
-    fs.writeFileSync('scores.json', JSON.stringify(score.highscore))
+    settings.highscore = new_score
+    fs.writeFileSync('scores.json', JSON.stringify(settings))
 }
 
 function new_fruit_pos_x() {
@@ -142,16 +169,6 @@ function update_body() {
     }
 }
 
-function display_snake_body() {
-    for (let i = 0; i < snake.length; i++) {
-        try {
-            var x = snake_body_pos[i][0]
-            var y = snake_body_pos[i][1]
-            r.DrawRectangle(x*squareSize, y*squareSize, squareSize, squareSize, snake.body_color)
-        } catch(err) {}
-    }
-}
-
 function death_by_body() {
     for (let i = 0; i < snake.length; i++) {
         try {
@@ -160,7 +177,8 @@ function death_by_body() {
             if (snake.x == x) {
                 if (snake.y == y) {
                     game_over = true
-                    if (snake.length > score.highscore) {
+                    game_playing = false
+                    if (snake.length > settings.highscore) {
                         update_highscore(snake.length)
                     }
                 }
@@ -172,30 +190,19 @@ function death_by_body() {
 function death_by_wall() {
     if (snake.x >= screenWidth/squareSize || snake.x < 0) {
         game_over = true
-        if (snake.length > score.highscore) {
+        game_playing = false
+        game_start = false
+        if (snake.length > settings.highscore) {
             update_highscore(snake.length)
         }
     }
     if (snake.y >= screenHeight/squareSize || snake.y < top_border/squareSize) {
         game_over = true
-        if (snake.length > score.highscore) {
+        game_playing = false
+        game_start = false
+        if (snake.length > settings.highscore) {
             update_highscore(snake.length)
         }
-    }
-}
-
-function death_screen() {
-    r.DrawText("You LOST!!!", screenWidth/2-100, screenHeight/2, 100, r.RAYWHITE)
-    r.DrawText("Press 'R' to restart", screenWidth/2-100, screenHeight/2+100, 20, r.RAYWHITE)
-}
-
-function draw_grid() {
-    for (let i = 0; i < screenWidth/squareSize; i++) {
-        r.DrawLineV(new r.Vector2(squareSize*i, 0), new r.Vector2(squareSize*i, screenHeight), line_color)
-    }
-
-    for (let i = 0; i < screenHeight/squareSize; i++) {
-        r.DrawLineV(new r.Vector2(0, squareSize*i), new r.Vector2(screenWidth, squareSize*i), line_color) 
     }
 }
 
@@ -223,13 +230,26 @@ function controls() {
 
     if (r.IsKeyPressed(r.KEY_R)) {
         init_vars()
+        game_over = false
+        game_playing = true
+        game_start = false
+    }
+    if (r.IsKeyPressed(r.KEY_ESCAPE)) {
+        game_over = true
+        game_playing = false
+        game_start = false
+    }
+    if (r.IsKeyPressed(r.KEY_E)) {
+        game_over = false
+        game_playing = false
+        game_start = true
     }
 }
 
 function game_update() {
     controls()
 
-    if (game_over) {
+    if (game_over || game_start) {
         return
     }
 
@@ -269,7 +289,7 @@ function game_update() {
         }
 
         if (speed < 3.3) {
-            speed += 0.001
+            speed += speed_increase
         }
         speed_check = -1
     }
@@ -277,31 +297,98 @@ function game_update() {
     speed_check = speed_check + speed
 }
 
+
+
+function start_screen() {
+    var button_width = 180
+    var button_height = 60
+    var button_rec = r.Rectangle(screenWidth/2-(button_width/2), screenHeight/2-(button_height/2)-80, 180, 60)
+    r.DrawRectangleRec(button_rec, r.RED)
+
+    var mouse_point = r.GetMousePosition()
+    var button_action = false
+
+    if (r.CheckCollisionPointRec(mouse_point, button_rec)) {
+        if (r.IsMouseButtonReleased(r.MOUSE_BUTTON_LEFT)) {
+            button_action = true
+        }
+    }
+    if (button_action) {
+        init_vars()
+        game_over = false
+        game_playing = true
+        game_start = false
+    }
+
+
+    var text = "SNAKE GAME"
+    var text_length = r.MeasureText(text, 60)
+    r.DrawText(text, screenWidth/2-(text_length/2), screenHeight/2-(button_height/2)-140, 60, button_color)
+	r.DrawText("START", screenWidth/2-(r.MeasureText("START", 30)/2), screenHeight/2-(button_height/2)-60, 30, r.RAYWHITE)	
+	
+	var color_text_x = 200
+	var color_text_y = 350
+	r.DrawText("Snake Color", color_text_x, color_text_y, 20, r.RAYWHITE)
+	r.DrawRectangle(color_text_x, color_text_y+25, 125, 20, r.Color(snake_color_red, snake_color_green, snake_color_blue, 255))
+
+}
+
+function play_screen() {
+	draw_grid()
+
+    for (var i = 0; i < fruit_array.length; i++) {
+    	r.DrawRectangleV(fruit_array[i].pos, fruit_array[i].size, fruit_array[i].color)
+    }
+    display_snake_body()
+
+    r.DrawRectangleV(snake.pos, snake.size, snake.head_color)
+    r.DrawRectangle(0, 0, screenWidth, top_border, top_border_color)
+}
+
+function death_screen() {
+    r.DrawText("You LOST!!!", screenWidth/2-100, screenHeight/2, 100, r.RAYWHITE)
+    r.DrawText("Press 'R' to restart", screenWidth/2-100, screenHeight/2+100, 20, r.RAYWHITE)
+}
+
+function display_snake_body() {
+    for (let i = 0; i < snake.length; i++) {
+        try {
+            var x = snake_body_pos[i][0]
+            var y = snake_body_pos[i][1]
+            r.DrawRectangle(x*squareSize, y*squareSize, squareSize, squareSize, snake.body_color)
+        } catch(err) {}
+    }
+}
+
+function draw_grid() {
+    for (let i = 0; i < screenWidth/squareSize; i++) {
+        r.DrawLineV(new r.Vector2(squareSize*i, 0), new r.Vector2(squareSize*i, screenHeight), line_color)
+    }
+
+    for (let i = 0; i < screenHeight/squareSize; i++) {
+        r.DrawLineV(new r.Vector2(0, squareSize*i), new r.Vector2(screenWidth, squareSize*i), line_color) 
+    }
+}
+
 function draw_screen() {
     r.BeginDrawing()
 
     r.ClearBackground(background_color)
-    
-    // Draws lines to screen
-    if (!game_over) {
-        draw_grid()
+   
+	if (game_start) {
+		start_screen()
+	}
+
+    if (game_playing) {
+        play_screen()
     }
 
-    
-    if (!game_over) {
-        for (var i = 0; i < fruit_array.length; i++) {
-            r.DrawRectangleV(fruit_array[i].pos, fruit_array[i].size, fruit_array[i].color)
-        }
-        display_snake_body()
-        r.DrawRectangleV(snake.pos, snake.size, snake.head_color)
-        
-        r.DrawRectangle(0, 0, screenWidth, top_border, top_border_color)
-    }
+	if (game_playing || game_over) {
+    	r.DrawText(("Length: " + snake.length), 30, 25, 40, r.Color(120, 120, 250, 200))
+    	r.DrawText(("HighScore: " + settings.highscore), 400, 25, 40, r.Color(120, 120, 250, 200))
+    	r.DrawText(("Speed: " + speed.toFixed(3)), 30, 80, 15, r.Color(120, 120, 250, 200))
+	}
 
-    r.DrawText(("Length: " + snake.length), 30, 25, 40, r.Color(120, 120, 250, 200))
-    r.DrawText(("HighScore: " + score.highscore), 400, 25, 40, r.Color(120, 120, 250, 200))
-    r.DrawText(("Speed: " + speed.toFixed(3)), 30, 80, 15, r.Color(120, 120, 250, 200))
-    
     if (game_over) {
         death_screen()
     }
