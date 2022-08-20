@@ -20,7 +20,7 @@ var settings = {
     'speed':0,
     'fruit_count':0,
 }
-settings = JSON.parse(fs.readFileSync('scores.json'))
+settings = JSON.parse(fs.readFileSync('settings.json'))
 
 const screenWidth = settings.screenWidth
 const screenHeight = settings.screenHeight
@@ -120,7 +120,7 @@ function init_vars() {
 
 function update_highscore(new_score) {
     settings.highscore = new_score
-    fs.writeFileSync('scores.json', JSON.stringify(settings))
+    fs.writeFileSync('settings.json', JSON.stringify(settings))
 }
 
 function new_fruit_pos_x() {
