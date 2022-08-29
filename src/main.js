@@ -11,7 +11,7 @@ const fs = require('fs')
 
 // Variables --------------------------------
 
-var settings = {
+let settings = {
     'screenWidth':0,
     'screenHeight':0,
 
@@ -32,19 +32,31 @@ const background_color = r.Color(60, 60, 60, 255)
 const top_border_color = r.Color(40, 40, 40, 255)
 const button_color = r.Color(200, 120, 90, 255)
 
-var snake_color_red = 123
-var snake_color_green = 23
-var snake_color_blue = 64
+let game_over = false
+let game_playing = true
+let game_start = false
+let speed_check = 0 // Move on 10
+let speed = 1
+let speed_increase = 0.005
 
-var game_over = false
-var game_playing = true
-var game_start = false
-var speed_check = 0 // Move on 10
-var speed = 1
-var speed_increase = 0.005
+let color_text_x = 0
+let color_text_y = 0
+let color_text_sizex = 0
+let color_text_sizey = 0
+
+let red_color_box = 0
+let green_color_box = 0
+let blue_color_box = 0
 
 
-var fruit_count = 5;
+const text_box = {
+    pos : new r.Vector2(),
+    size : new r.Vector2(),
+    clicked : false,
+    text : "",
+}
+
+let fruit_count = 5;
 
 const fruit = {
     pos : new r.Vector2(),
@@ -54,7 +66,7 @@ const fruit = {
     color : r.RED
 }
 
-var fruit_array = []
+let fruit_array = []
 
 
 const snake = {
@@ -96,11 +108,11 @@ r.CloseWindow()
 
 function init_vars() {
 
-    for (var i = 0; i < fruit_count; i++) {
+    for (let i = 0; i < fruit_count; i++) {
         fruit_array[i] = JSON.parse(JSON.stringify(fruit))
     }
 
-    for (var i = 0; i < fruit_array.length; i++) {
+    for (let i = 0; i < fruit_array.length; i++) {
         fruit_array[i].size = new r.Vector2(squareSize-0.5, squareSize-0.5)
         fruit_array[i].x = new_fruit_pos_x(), fruit_array[i].y = new_fruit_pos_y() 
         fruit_array[i].pos = r.Vector2(fruit_array[i].x*squareSize, fruit_array[i].y*squareSize)
@@ -116,6 +128,22 @@ function init_vars() {
     snake.head_color = r.Color(115, 84, 222, 255)
     snake.body_color = r.Color(85, 54, 192, 255)
     // snake.body_color = r.Color(83, 48, 209, 255)
+    
+    // Start Screen:
+    color_text_x = 200
+    color_text_y = 350
+    color_text_sizex = 125
+    color_text_sizey = 20
+
+    red_color_box = JSON.parse(JSON.stringify(text_box))
+        red_color_box.pos = r.Vector2(color_text_x + 155, color_text_y + 25)
+        red_color_box.size = r.Vector2(color_text_sizex, color_text_sizey)
+    green_color_box = JSON.parse(JSON.stringify(text_box))
+        green_color_box.pos = r.Vector2(color_text_x + 295, color_text_y + 25)
+        green_color_box.size = r.Vector2(color_text_sizex, color_text_sizey)
+    blue_color_box = JSON.parse(JSON.stringify(text_box))
+        blue_color_box.pos = r.Vector2(color_text_x + 435, color_text_y + 25)
+        blue_color_box.size = r.Vector2(color_text_sizex, color_text_sizey)
 }
 
 function update_highscore(new_score) {
@@ -125,7 +153,7 @@ function update_highscore(new_score) {
 
 function new_fruit_pos_x() {
     while (true) {
-        var x = Math.floor(Math.random()*screenWidth / squareSize)
+        let x = Math.floor(Math.random()*screenWidth / squareSize)
         for (const body in snake_body_pos) {
             if (x == body.x) {
                 continue
@@ -136,14 +164,13 @@ function new_fruit_pos_x() {
                 continue
             }
         }
-        break
+        return x
     }
-    return x
 }
 
 function new_fruit_pos_y() {
     while (true) {
-        var y = Math.floor(((Math.random()*(screenHeight-top_border))+top_border) / squareSize)
+        let y = Math.floor(((Math.random()*(screenHeight-top_border))+top_border) / squareSize)
         for (const body in snake_body_pos) {
             if (y == body.y) {
                 continue
@@ -154,9 +181,8 @@ function new_fruit_pos_y() {
                 continue
             }
         }
-        break
+        return y
     }
-    return y
 }
 
 function update_body() {
@@ -172,8 +198,8 @@ function update_body() {
 function death_by_body() {
     for (let i = 0; i < snake.length; i++) {
         try {
-            var x = snake_body_pos[i][0]
-            var y = snake_body_pos[i][1]
+            let x = snake_body_pos[i][0]
+            let y = snake_body_pos[i][1]
             if (snake.x == x) {
                 if (snake.y == y) {
                     game_over = true
@@ -256,7 +282,7 @@ function game_update() {
     
     if (speed_check >= 10) {
 
-        for (var i = 0; i < fruit_array.length; i++) {
+        for (let i = 0; i < fruit_array.length; i++) {
             if (snake.x == fruit_array[i].x) {
                 if (snake.y == fruit_array[i].y) {
                     snake.length += 1
@@ -284,7 +310,7 @@ function game_update() {
         death_by_wall()
 
         snake.pos = r.Vector2(snake.x*squareSize, snake.y*squareSize)
-        for (var i = 0; i < fruit_array.length; i++) {
+        for (let i = 0; i < fruit_array.length; i++) {
             fruit_array[i].pos = r.Vector2(fruit_array[i].x*squareSize, fruit_array[i].y*squareSize)
         }
 
@@ -300,20 +326,20 @@ function game_update() {
 
 
 function start_screen() {
-    var button_width = 180
-    var button_height = 60
-    var button_rec = r.Rectangle(screenWidth/2-(button_width/2), screenHeight/2-(button_height/2)-80, 180, 60)
+    let button_width = 180
+    let button_height = 60
+    let button_rec = r.Rectangle(screenWidth/2-(button_width/2), screenHeight/2-(button_height/2)-80, 180, 60)
     r.DrawRectangleRec(button_rec, r.RED)
 
-    var mouse_point = r.GetMousePosition()
-    var button_action = false
+    let mouse_point = r.GetMousePosition()
+    let start_button_action = false
 
     if (r.CheckCollisionPointRec(mouse_point, button_rec)) {
         if (r.IsMouseButtonReleased(r.MOUSE_BUTTON_LEFT)) {
-            button_action = true
+            start_button_action = true
         }
     }
-    if (button_action) {
+    if (start_button_action) {
         init_vars()
         game_over = false
         game_playing = true
@@ -321,22 +347,24 @@ function start_screen() {
     }
 
 
-    var text = "SNAKE GAME"
-    var text_length = r.MeasureText(text, 60)
+    let text = "SNAKE GAME"
+    let text_length = r.MeasureText(text, 60)
     r.DrawText(text, screenWidth/2-(text_length/2), screenHeight/2-(button_height/2)-140, 60, button_color)
 	r.DrawText("START", screenWidth/2-(r.MeasureText("START", 30)/2), screenHeight/2-(button_height/2)-60, 30, r.RAYWHITE)	
-	
-	var color_text_x = 200
-	var color_text_y = 350
-	r.DrawText("Snake Color", color_text_x, color_text_y, 20, r.RAYWHITE)
-	r.DrawRectangle(color_text_x, color_text_y+25, 125, 20, r.Color(snake_color_red, snake_color_green, snake_color_blue, 255))
 
+    // Choosing snake color:
+	r.DrawText("Snake Color", color_text_x, color_text_y, 20, r.RAYWHITE)
+	r.DrawRectangle(color_text_x, color_text_y+25, color_text_sizex, color_text_sizey, snake.head_color)
+
+    r.DrawRectangleV(red_color_box.pos, red_color_box.size, r.RAYWHITE)
+    r.DrawRectangleV(green_color_box.pos, green_color_box.size, r.RAYWHITE)
+    r.DrawRectangleV(blue_color_box.pos, blue_color_box.size, r.RAYWHITE)
 }
 
 function play_screen() {
 	draw_grid()
 
-    for (var i = 0; i < fruit_array.length; i++) {
+    for (let i = 0; i < fruit_array.length; i++) {
     	r.DrawRectangleV(fruit_array[i].pos, fruit_array[i].size, fruit_array[i].color)
     }
     display_snake_body()
@@ -353,8 +381,8 @@ function death_screen() {
 function display_snake_body() {
     for (let i = 0; i < snake.length; i++) {
         try {
-            var x = snake_body_pos[i][0]
-            var y = snake_body_pos[i][1]
+            let x = snake_body_pos[i][0]
+            let y = snake_body_pos[i][1]
             r.DrawRectangle(x*squareSize, y*squareSize, squareSize, squareSize, snake.body_color)
         } catch(err) {}
     }
